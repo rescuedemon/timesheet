@@ -111,6 +111,7 @@ const PersonalJournal: React.FC = () => {
   const [showNewEntryForm, setShowNewEntryForm] = useState(false);
   const [holidayOverviewMode, setHolidayOverviewMode] = useState<'overview' | 'detail'>('overview');
   const [selectedHolidayMonth, setSelectedHolidayMonth] = useState<Date | null>(null);
+  const [notifications, setNotifications] = useState<Entry[]>([]);
 
   // Progress bar settings
   const [isAnimationEnabled, setIsAnimationEnabled] = useState(() => {
@@ -139,7 +140,7 @@ const PersonalJournal: React.FC = () => {
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.6 ? '#374151' : '#f9fafb';
+    return luminance > 0.6 ? '#000000' : '#ffffff';
   };
 
   // Container styles
@@ -148,7 +149,7 @@ const PersonalJournal: React.FC = () => {
   }, [isAnimationEnabled, progressBarColor]);
 
   const containerTextColor = useMemo(() => {
-    return isAnimationEnabled ? getTextColor(progressBarColor) : '#f9fafb';
+    return isAnimationEnabled ? getTextColor(progressBarColor) : '#000000';
   }, [isAnimationEnabled, progressBarColor]);
 
   // Event listeners
@@ -256,7 +257,9 @@ const PersonalJournal: React.FC = () => {
   };
 
   const updateEntry = async (id: string, updatedFields: Partial<Entry>) => {
-    setEntries(entries.map(entry => (entry.id === id ? { ...entry, ...updatedFields } : entry)));
+    setEntries(entries.map(entry => 
+      entry.id === id ? { ...entry, ...updatedFields } : entry
+    ));
   };
 
   // Additional Functional Features
@@ -353,10 +356,8 @@ const PersonalJournal: React.FC = () => {
           <div key={day} onClick={() => handleDateClick(day)} className={className}>
             {hasEntries && (
               <div
-                className={`w-4 h-4 rounded-full ${dotColor === 'white' ? 'bg-white' : 'bg-red-500'} absolute -top-1 -right-1 flex items-center justify-center text-xs font-bold ${dotColor === 'white' ? 'text-black' : 'text-white'} shadow-lg border-2 border-white`}
-              >
-                {day}
-              </div>
+                className={`w-2 h-2 rounded-full ${dotColor === 'white' ? 'bg-white' : 'bg-red-500'} absolute top-1 right-1 animate-pulse`}
+              ></div>
             )}
             {day}
           </div>
@@ -369,11 +370,11 @@ const PersonalJournal: React.FC = () => {
     return (
       <div className="w-full">
         <div className="bg-white rounded-xl shadow-2xl border border-black/5 overflow-hidden backdrop-blur-sm">
-          <div className="p-6 shadow-inner" style={{ backgroundColor: containerBgColor, color: containerTextColor, boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.2), 0 8px 32px rgba(0,0,0,0.1)' }}>
+          <div className="p-6 shadow-inner" style={{ backgroundColor: containerBgColor, boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.2), 0 8px 32px rgba(0,0,0,0.1)' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Calendar size={20} />
-                <span className="text-lg font-bold">Calendar</span>
+                <span className="text-lg font-bold" style={{ color: containerTextColor }}>Calendar</span>
               </div>
               <div className="flex items-center gap-6">
                 <button
@@ -383,7 +384,7 @@ const PersonalJournal: React.FC = () => {
                 >
                   ‹
                 </button>
-                <div className="text-xl font-bold min-w-48 text-center">
+                <div className="text-xl font-bold min-w-48 text-center" style={{ color: containerTextColor }}>
                   {months[month.getMonth()]} {month.getFullYear()}
                 </div>
                 <button
@@ -409,6 +410,50 @@ const PersonalJournal: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+    );
+  };
+
+  // Notification Center Component
+  const NotificationCenter = () => {
+    if (notifications.length === 0) return null;
+
+    const handleCloseNotification = (id: string) => {
+      setNotifications(prev => prev.filter(entry => entry.id !== id));
+    };
+
+    const handleCloseAll = () => {
+      setNotifications([]);
+    };
+
+    return (
+      <div className="fixed bottom-4 right-4 z-50 space-y-4 max-w-sm">
+        {notifications.length > 1 && (
+          <div className="flex justify-end">
+            <button 
+              onClick={handleCloseAll}
+              className="text-sm font-medium text-white bg-gray-700 hover:bg-gray-800 px-3 py-1 rounded-lg transition-colors"
+            >
+              Close All
+            </button>
+          </div>
+        )}
+        {notifications.map(entry => (
+          <div key={entry.id} className="bg-blue-500 text-white p-4 rounded-lg shadow-xl animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold">Reminder</h3>
+                <p className="text-sm">{entry.content || 'Reminder notification'}</p>
+              </div>
+              <button 
+                className="ml-4 text-white hover:text-gray-200 text-lg"
+                onClick={() => handleCloseNotification(entry.id)}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     );
   };
@@ -509,33 +554,11 @@ const PersonalJournal: React.FC = () => {
     };
 
     const handleTaskToggle = (id: string) => {
-      const taskToToggle = newEntry.tasks.find(task => task.id === id);
-      
       setNewEntry({
         ...newEntry,
         tasks: newEntry.tasks.map(task => 
           task.id === id ? { ...task, completed: !task.completed } : task
         )
-      });
-      
-      // Show smooth completion animation
-      if (taskToToggle && !taskToToggle.completed) {
-        setTimeout(() => {
-          const taskElement = document.querySelector(`[data-task-id="${id}"]`);
-          if (taskElement) {
-            taskElement.classList.add('task-completed');
-            setTimeout(() => {
-              taskElement.classList.remove('task-completed');
-            }, 1000);
-          }
-        }, 50);
-      }
-    };
-
-    const handleRemoveTask = (id: string) => {
-      setNewEntry({
-        ...newEntry,
-        tasks: newEntry.tasks.filter(task => task.id !== id)
       });
     };
 
@@ -1037,11 +1060,6 @@ const PersonalJournal: React.FC = () => {
                          })}
                       </div>
                     )}
-                    {holidayCount > 0 && (
-                      <div className="text-xs text-gray-400">
-                        {holidaysInMonth.map(h => new Date(h.date).getDate()).join(', ')}
-                      </div>
-                    )}
                   </div>
                 </button>
               );
@@ -1138,26 +1156,11 @@ const PersonalJournal: React.FC = () => {
           
           // Show notification if within 1 minute of reminder time
           if (timeDiff <= 60000) {
-            // Create reminder popup
-            const reminderDiv = document.createElement('div');
-            reminderDiv.className = 'fixed top-4 right-4 bg-blue-500 text-white p-4 rounded-lg shadow-xl z-50 max-w-sm animate-fade-in';
-            reminderDiv.innerHTML = `
-              <div class="flex items-center justify-between">
-                <div>
-                  <h3 class="font-bold">Reminder</h3>
-                  <p class="text-sm">${entry.content || 'Reminder notification'}</p>
-                </div>
-                <button class="ml-4 text-white hover:text-gray-200" onclick="this.parentElement.parentElement.remove()">×</button>
-              </div>
-            `;
-            document.body.appendChild(reminderDiv);
-            
-            // Auto-remove after 10 seconds
-            setTimeout(() => {
-              if (reminderDiv.parentElement) {
-                reminderDiv.remove();
-              }
-            }, 10000);
+            setNotifications(prev => {
+              // Check if this entry is already in the notifications
+              if (prev.some(n => n.id === entry.id)) return prev;
+              return [...prev, entry];
+            });
           }
         }
       });
@@ -1191,6 +1194,9 @@ const PersonalJournal: React.FC = () => {
           }
         `}
       </style>
+      
+      <NotificationCenter />
+      
       <div className="max-w-7xl mx-auto">
         {/* Top Navigation */}
         <div className="px-6 py-4 mb-8">
