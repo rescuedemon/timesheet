@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useProjectManagement } from '@/hooks/useProjectManagement';
+import { useTimeLogging } from '@/hooks/useTimeLogging';
+import { storageService } from '@/services/storageService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ProjectSelector from './ProjectSelector';
 import StopwatchPanel from './StopwatchPanel';
@@ -31,83 +34,55 @@ export interface TimeLog {
 }
 
 const TimeTracker = () => {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
+  const {
+    projects,
+    addProject,
+    updateProjectTimes
+  } = useProjectManagement();
+  const { timeLogs, logTime } = useTimeLogging();
   const [selectedProjectId, setSelectedProjectId] = useState<string>(() => {
-    const saved = localStorage.getItem('selected-project-id');
-    return saved || '';
+    return storageService.getSelectedProjectId();
   });
   const [selectedSubprojectId, setSelectedSubprojectId] = useState<string>(() => {
-    const saved = localStorage.getItem('selected-subproject-id');
-    return saved || '';
+    return storageService.getSelectedSubprojectId();
   });
   const [queuedProjects, setQueuedProjects] = useState<QueuedProject[]>(() => {
-    const saved = localStorage.getItem('queued-projects');
-    return saved ? JSON.parse(saved) : [];
+    return storageService.getQueuedProjects();
   });
   const [resumedProject, setResumedProject] = useState<QueuedProject | undefined>();
 
+  // Update project times when time logs change
   useEffect(() => {
-    const savedProjects = localStorage.getItem('timesheet-projects');
-    const savedTimeLogs = localStorage.getItem('timesheet-logs');
-    
-    if (savedProjects) {
-      setProjects(JSON.parse(savedProjects));
-    }
-    if (savedTimeLogs) {
-      setTimeLogs(JSON.parse(savedTimeLogs));
-    }
-  }, []);
+    updateProjectTimes(timeLogs);
+  }, [timeLogs, updateProjectTimes]);
 
   useEffect(() => {
-    localStorage.setItem('timesheet-projects', JSON.stringify(projects));
-  }, [projects]);
-
-  useEffect(() => {
-    localStorage.setItem('timesheet-logs', JSON.stringify(timeLogs));
-  }, [timeLogs]);
-
-  useEffect(() => {
-    localStorage.setItem('selected-project-id', selectedProjectId);
+    storageService.saveSelectedProjectId(selectedProjectId);
   }, [selectedProjectId]);
 
   useEffect(() => {
-    localStorage.setItem('selected-subproject-id', selectedSubprojectId);
+    storageService.saveSelectedSubprojectId(selectedSubprojectId);
   }, [selectedSubprojectId]);
 
   useEffect(() => {
-    localStorage.setItem('queued-projects', JSON.stringify(queuedProjects));
+    storageService.saveQueuedProjects(queuedProjects);
   }, [queuedProjects]);
 
   useEffect(() => {
     const handleUpdateSubproject = (event: any) => {
       const { projectId, subprojectId, newName } = event.detail;
-      setProjects(projects.map(project => 
-        project.id === projectId 
-          ? {
-              ...project,
-              subprojects: project.subprojects.map(sub =>
-                sub.id === subprojectId ? { ...sub, name: newName } : sub
-              )
-            }
-          : project
-      ));
+      // This will be handled by the project management hook
+      window.location.reload(); // Temporary solution to refresh data
     };
 
     const handleDeleteSubproject = (event: any) => {
       const { projectId, subprojectId } = event.detail;
-      setProjects(projects.map(project => 
-        project.id === projectId 
-          ? {
-              ...project,
-              subprojects: project.subprojects.filter(sub => sub.id !== subprojectId)
-            }
-          : project
-      ));
+      // This will be handled by the project management hook
       
       if (selectedSubprojectId === subprojectId) {
         setSelectedSubprojectId('');
       }
+      window.location.reload(); // Temporary solution to refresh data
     };
 
     window.addEventListener('update-subproject', handleUpdateSubproject);
@@ -118,21 +93,6 @@ const TimeTracker = () => {
       window.removeEventListener('delete-subproject', handleDeleteSubproject);
     };
   }, [projects, selectedSubprojectId]);
-
-  const addProject = (projectName: string, subprojectName: string = '') => {
-    const newProject: Project = {
-      id: Date.now().toString(),
-      name: projectName,
-      subprojects: subprojectName ? [{
-        id: `${Date.now()}-sub`,
-        name: subprojectName,
-        totalTime: 0
-      }] : [],
-      totalTime: 0
-    };
-
-    setProjects([...projects, newProject]);
-  };
 
   const addSubproject = (projectId: string, subprojectName: string) => {
     setProjects(projects.map(project => 
@@ -149,7 +109,7 @@ const TimeTracker = () => {
     ));
   };
 
-  const logTime = (duration: number, description: string, startTime: Date, endTime: Date, projectId?: string, subprojectId?: string) => {
+  const handleLogTime = (duration: number, description: string, startTime: Date, endTime: Date, projectId?: string, subprojectId?: string) => {
     const targetProjectId = projectId || selectedProjectId;
     const targetSubprojectId = subprojectId || selectedSubprojectId;
     
@@ -158,34 +118,7 @@ const TimeTracker = () => {
     
     if (!project || !subproject) return;
 
-    const newTimeLog: TimeLog = {
-      id: Date.now().toString(),
-      projectId: targetProjectId,
-      subprojectId: targetSubprojectId,
-      projectName: project.name,
-      subprojectName: subproject.name,
-      duration,
-      description,
-      date: new Date().toISOString().split('T')[0],
-      startTime: startTime.toLocaleTimeString(),
-      endTime: endTime.toLocaleTimeString()
-    };
-
-    setTimeLogs([newTimeLog, ...timeLogs]);
-
-    setProjects(projects.map(p =>
-      p.id === targetProjectId
-        ? {
-            ...p,
-            totalTime: p.totalTime + duration,
-            subprojects: p.subprojects.map(s =>
-              s.id === targetSubprojectId
-                ? { ...s, totalTime: s.totalTime + duration }
-                : s
-            )
-          }
-        : p
-    ));
+    logTime(duration, description, startTime, endTime, targetProjectId, targetSubprojectId, project.name, subproject.name);
   };
 
   const switchToExcelView = () => {
@@ -197,23 +130,22 @@ const TimeTracker = () => {
   };
 
   const handleResumeProject = (queuedProject: QueuedProject) => {
-    const currentStopwatchState = localStorage.getItem('stopwatch-state');
+    const currentStopwatchState = storageService.getStopwatchState();
     if (currentStopwatchState) {
-      const state = JSON.parse(currentStopwatchState);
-      if (state.isRunning && state.startTime) {
+      if (currentStopwatchState.isRunning && currentStopwatchState.startTime) {
         const currentProject = projects.find(p => p.id === selectedProjectId);
         const currentSubproject = currentProject?.subprojects.find(s => s.id === selectedSubprojectId);
         
         if (currentProject && currentSubproject) {
-          const currentElapsedTime = Math.floor((new Date().getTime() - new Date(state.startTime).getTime()) / 1000);
+          const currentElapsedTime = Math.floor((new Date().getTime() - new Date(currentStopwatchState.startTime).getTime()) / 1000);
           const currentQueuedProject: QueuedProject = {
             id: Date.now().toString(),
             projectId: selectedProjectId,
             subprojectId: selectedSubprojectId,
             projectName: currentProject.name,
             subprojectName: currentSubproject.name,
-            elapsedTime: state.elapsedTime + currentElapsedTime,
-            startTime: new Date(state.startTime)
+            elapsedTime: currentStopwatchState.elapsedTime + currentElapsedTime,
+            startTime: new Date(currentStopwatchState.startTime)
           };
           
           setQueuedProjects([...queuedProjects.filter(p => p.id !== queuedProject.id), currentQueuedProject]);
@@ -273,7 +205,7 @@ const TimeTracker = () => {
               <StopwatchPanel
                 selectedProject={selectedProject}
                 selectedSubproject={selectedSubproject}
-                onLogTime={logTime}
+                onLogTime={handleLogTime}
                 onSwitchToExcelView={switchToExcelView}
                 onPauseProject={handlePauseProject}
                 resumedProject={resumedProject}
@@ -289,7 +221,7 @@ const TimeTracker = () => {
             queuedProjects={queuedProjects}
             onResumeProject={handleResumeProject}
             onStopProject={handleStopQueuedProject}
-            onLogTime={logTime}
+            onLogTime={handleLogTime}
           />
         </div>
       </div>
