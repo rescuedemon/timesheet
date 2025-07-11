@@ -18,7 +18,8 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   
   const windRef = useRef<HTMLDivElement>(null);
   const [waves, setWaves] = useState<number[]>([]);
-  const [boats, setBoats] = useState<{id: number, startTime: number}[]>([]);
+  const [boats, setBoats] = useState<{ id: number; top: number; }[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Generate wind effect particles
   useEffect(() => {
@@ -64,6 +65,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     if (!enabled) return;
     
     const waveInterval = setInterval(() => {
+      // Add wave with random position
       setWaves(prev => [...prev, Date.now()]);
       
       // Remove wave after animation completes
@@ -75,21 +77,31 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     return () => clearInterval(waveInterval);
   }, [enabled]);
 
-  // Add boats every 30 minutes (only after 5+ hours)
+  // Add mini boats every 15 minutes
   useEffect(() => {
-    if (!enabled || currentHours < 5 * 3600) return;
+    if (!enabled) return;
     
     const boatInterval = setInterval(() => {
-      setBoats(prev => [...prev, { id: Date.now(), startTime: Date.now() }]);
-      
-      // Remove boat after 5 minutes
-      setTimeout(() => {
-        setBoats(prev => prev.slice(1));
-      }, 300000); // 5 minutes
-    }, 1800000); // 30 minutes
+      // Add boat with random vertical position
+      setBoats(prev => [...prev, { 
+        id: Date.now(), 
+        top: Math.random() * 20 + 10  // 10% to 30% from top
+      }]);
+    }, 900000); // 15 minutes
     
     return () => clearInterval(boatInterval);
-  }, [enabled, currentHours]);
+  }, [enabled]);
+
+  // Remove boats after they complete their journey
+  useEffect(() => {
+    if (!enabled) return;
+    
+    const cleanup = setInterval(() => {
+      setBoats(prev => prev.filter(boat => Date.now() - boat.id <= 31000));
+    }, 1000);
+    
+    return () => clearInterval(cleanup);
+  }, [enabled]);
 
   // Calculate muted color for background
   const hexToRgb = (hex: string) => {
@@ -125,7 +137,10 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   }
 
   return (
-    <div className="mb-6 p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-300 animate-fade-in overflow-hidden relative backdrop-blur-sm h-44">
+    <div 
+      ref={containerRef}
+      className="mb-6 p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-300 animate-fade-in relative backdrop-blur-sm h-44"
+    >
       {/* Background with subtle gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800" />
       
@@ -147,17 +162,17 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
           }}
         />
         
-        {/* Main wave pattern - FIXED DIRECTION (left to right) */}
+        {/* Main wave pattern */}
         <div 
           className="absolute inset-0 opacity-40"
           style={{ 
             backgroundImage: `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0,40 C20,20 40,60 60,30 C80,60 100,20 100,40 L100,100 L0,100 Z" fill="${encodeURIComponent(mutedColor)}"/></svg>')`,
             backgroundSize: '200% 100%',
-            animation: 'waveMove 25s linear infinite reverse'
+            animation: 'waveMove 25s linear infinite'
           }} 
         />
         
-        {/* Secondary wave pattern - FIXED DIRECTION (left to right) */}
+        {/* Secondary wave pattern */}
         <div 
           className="absolute inset-0 opacity-30"
           style={{ 
@@ -179,6 +194,33 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
             mixBlendMode: 'overlay'
           }}
         />
+        
+        {/* Mini boats - inside the filled portion */}
+        {boats.map(boat => (
+          <div 
+            key={boat.id}
+            className="absolute pointer-events-none"
+            style={{
+              top: `${boat.top}%`,
+              left: '100%',
+              animation: `boatFloat 25s linear forwards, boatBob 3s ease-in-out infinite`,
+              zIndex: 15,
+              width: '35px',
+              height: '35px',
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+            }}
+          >
+            <svg viewBox="0 0 36 36" fill="none" style={{ width: '100%', height: '100%' }}>
+              <path d="M6 26L28 26C28 26 26 22 24 22L8 22C6 22 6 26 6 26Z" fill="#8B4513"/>
+              <path d="M8 22L24 22L24 20L8 20Z" fill="#D2691E"/>
+              <path d="M16 20L16 8L10 16L16 20Z" fill="#FF6B6B"/>
+              <path d="M16 20L16 6L22 14L16 20Z" fill="#4ECDC4"/>
+              <path d="M16 6L16 4" stroke="#654321" strokeWidth="1"/>
+              <circle cx="7" cy="24" r="1" fill="#FFD700"/>
+              <circle cx="25" cy="24" r="1" fill="#FFD700"/>
+            </svg>
+          </div>
+        ))}
       </div>
       
       {/* Progress divider */}
@@ -208,59 +250,51 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         }}
       />
       
-      {/* Content */}
-      <div className="relative z-10 h-full">
-        <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl px-4 py-2 absolute top-3 left-3 border border-gray-800/50 shadow-md">
+      {/* Content - moved to bottom left with padding 4 */}
+      <div className="absolute bottom-4 left-4 z-20">
+        <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl px-4 py-3 border border-gray-800/50 shadow-md">
           <div className="text-3xl font-bold text-white tracking-tight">{hours} hrs</div>
         </div>
       </div>
+      
+      {/* Test controls - top right */}
+      {enabled && (
+        <div className="absolute top-4 right-4 z-30 flex space-x-2">
+          <button 
+            className="bg-gray-900/80 text-white px-3 py-1 rounded-lg text-sm backdrop-blur-sm shadow-md hover:bg-gray-700 transition-colors"
+            onClick={() => setBoats(prev => [...prev, { 
+              id: Date.now(), 
+              top: Math.random() * 20 + 10 
+            }])}
+          >
+            Test Boat
+          </button>
+          <button 
+            className="bg-gray-900/80 text-white px-3 py-1 rounded-lg text-sm backdrop-blur-sm shadow-md hover:bg-red-700 transition-colors"
+            onClick={() => setBoats(prev => prev.slice(0, -1))}
+          >
+            Undo Boat
+          </button>
+        </div>
+      )}
       
       {/* Subtle waves */}
       {waves.map((id) => (
         <div 
           key={id}
-          className="absolute bottom-0 left-0 w-full h-20 pointer-events-none"
+          className="absolute bottom-0 left-0 w-full h-12 pointer-events-none"
           style={{
             animation: `waveRipple 3s ease-out`,
-            background: `radial-gradient(ellipse at center, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%)`,
-            opacity: 0.4,
+            background: `radial-gradient(ellipse at center, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%)`,
+            zIndex: 15
           }}
         />
       ))}
       
-      {/* Mini boats (only after 5+ hours) */}
-      {boats.map((boat) => {
-        const elapsed = (Date.now() - boat.startTime) / 1000; // seconds
-        const progress = Math.min(elapsed / 300, 1); // 5 minutes = 300 seconds
-        return (
-          <div
-            key={boat.id}
-            className="absolute top-1/3 transform -translate-y-1/2 pointer-events-none"
-            style={{
-              left: `${progress * 100}%`,
-              animation: `boatFloat 2s ease-in-out infinite alternate`,
-              transition: 'left 0.5s linear',
-              zIndex: 20,
-            }}
-          >
-            <svg 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24"
-              className="transform -translate-x-1/2"
-            >
-              <path d="M3 18c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm18-4h-8v-2h8v2z" fill="#FF9800"/>
-              <path d="M21 14h-8v-2h8v2zm-4-4h-4V8h4v2z" fill="#FFC107"/>
-              <path d="M3 10c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z" fill="#4CAF50"/>
-            </svg>
-          </div>
-        );
-      })}
-      
       <style jsx>{`
         @keyframes waveMove {
-          0% { background-position-x: 0; }
-          100% { background-position-x: 200%; }
+          0% { background-position-x: 200%; }
+          100% { background-position-x: 0; }
         }
         
         @keyframes windFloat {
@@ -276,25 +310,40 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         
         @keyframes waveRipple {
           0% {
-            opacity: 0.5;
-            transform: translateY(0) scale(1, 0.3);
+            opacity: 0.3;
+            transform: translateY(0) scale(1, 0.4);
           }
           50% {
-            opacity: 0.6;
+            opacity: 0.5;
           }
           100% {
             opacity: 0;
-            transform: translateY(-40px) scale(1.8, 1);
+            transform: translateY(-30px) scale(1.5, 1);
           }
         }
         
         @keyframes boatFloat {
-          0%, 100% { 
-            transform: translateY(-50%) translateY(-2px);
+          0% { 
+            transform: translateX(0);
+            opacity: 0;
           }
-          50% { 
-            transform: translateY(-50%) translateY(2px);
+          5% { 
+            opacity: 1;
           }
+          95% {
+            opacity: 1;
+          }
+          100% { 
+            transform: translateX(-100%);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes boatBob {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          25% { transform: translateY(-4px) rotate(-2deg); }
+          50% { transform: translateY(0px) rotate(0deg); }
+          75% { transform: translateY(-3px) rotate(2deg); }
         }
       `}</style>
     </div>
