@@ -85,7 +85,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       // Add boat with random vertical position
       setBoats(prev => [...prev, { 
         id: Date.now(), 
-        top: Math.random() * 20 + 10  // 10% to 30% from top
+        top: Math.random() * 20 + 40  // 40% to 60% from top (near water surface)
       }]);
     }, 900000); // 15 minutes
     
@@ -195,19 +195,19 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
           }}
         />
         
-        {/* Mini boats - inside the filled portion */}
+        {/* Mini boats */}
         {boats.map(boat => (
           <div 
             key={boat.id}
             className="absolute pointer-events-none"
             style={{
               top: `${boat.top}%`,
-              left: '100%',
+              left: '0%',
               animation: `boatFloat 25s linear forwards, boatBob 3s ease-in-out infinite`,
               zIndex: 15,
               width: '35px',
               height: '35px',
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))'
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
             }}
           >
             <svg viewBox="0 0 36 36" fill="none" style={{ width: '100%', height: '100%' }}>
@@ -250,21 +250,21 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         }}
       />
       
-      {/* Content - moved to bottom left with padding 4 */}
-      <div className="absolute bottom-4 left-4 z-20">
+      {/* Content - moved to top left with padding 4 */}
+      <div className="absolute top-4 left-4 z-20">
         <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl px-4 py-3 border border-gray-800/50 shadow-md">
           <div className="text-3xl font-bold text-white tracking-tight">{hours} hrs</div>
         </div>
       </div>
       
       {/* Test controls - top right */}
-      {enabled && (
+      {false && (
         <div className="absolute top-4 right-4 z-30 flex space-x-2">
           <button 
             className="bg-gray-900/80 text-white px-3 py-1 rounded-lg text-sm backdrop-blur-sm shadow-md hover:bg-gray-700 transition-colors"
             onClick={() => setBoats(prev => [...prev, { 
               id: Date.now(), 
-              top: Math.random() * 20 + 10 
+              top: Math.random() * 20 + 40 
             }])}
           >
             Test Boat
@@ -324,7 +324,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
         
         @keyframes boatFloat {
           0% { 
-            transform: translateX(0);
+            left: -5%;
             opacity: 0;
           }
           5% { 
@@ -334,7 +334,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
             opacity: 1;
           }
           100% { 
-            transform: translateX(-100%);
+            left: 100%;
             opacity: 0;
           }
         }
