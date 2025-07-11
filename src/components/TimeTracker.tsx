@@ -197,9 +197,7 @@ const TimeTracker = () => {
           {/* Right Panel - Stopwatch */}
           <Card className="h-full rounded-[22px] bg-white/90 backdrop-blur-2xl border border-white/80 shadow-xl hover:shadow-2xl transition-all duration-300">
             <CardHeader className="px-6 py-5 border-b border-gray-100/50">
-              <CardTitle className="text-[22px] font-medium text-gray-800 tracking-[-0.01em]">
-                Time Tracker
-              </CardTitle>
+
             </CardHeader>
             <CardContent className="h-full pt-0 px-5 pb-6">
               <StopwatchPanel

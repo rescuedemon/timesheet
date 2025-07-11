@@ -64,6 +64,10 @@ const QueuedProjects: React.FC<QueuedProjectsProps> = ({
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatRoundoffTime = (seconds: number) => {
+    return (seconds / 3600).toFixed(2);
+  };
+
   const handleStopClick = (project: QueuedProject) => {
     setStoppingProject(project);
   };
@@ -101,13 +105,13 @@ const QueuedProjects: React.FC<QueuedProjectsProps> = ({
   return (
     <>
       <Card className="mt-8 bg-white dark:bg-gray-850 rounded-2xl shadow-lg border-0 overflow-hidden">
-        <CardHeader className="pb-4 px-6 pt-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 border-b border-gray-100 dark:border-gray-700">
+        <CardHeader className="pb-5 px-7 pt-7 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 border-b border-gray-100 dark:border-gray-700">
           <CardTitle className="text-xl font-semibold text-gray-800 dark:text-white tracking-tight">
             Paused Projects
           </CardTitle>
         </CardHeader>
-        <CardContent className="pb-8 px-6 pt-6">
-          <div className="space-y-6">
+        <CardContent className="pb-9 px-7 pt-7">
+          <div className="space-y-7">
             {queuedProjects.map(project => (
               <div 
                 key={project.id} 
@@ -115,22 +119,27 @@ const QueuedProjects: React.FC<QueuedProjectsProps> = ({
                 style={getProjectBackgroundStyle(project.projectName)}
               >
                 {/* Project name container (left 15%) */}
-                <div className="w-[15%] min-w-[120px] bg-gray-900 dark:bg-gray-900 flex flex-col items-center justify-center text-white p-6 rounded-l-xl">
+                <div className="w-[15%] min-w-[120px] bg-gray-900 dark:bg-gray-900 flex flex-col items-center justify-center text-white p-7 rounded-l-xl">
                   <div className="font-bold text-center text-base">
                     {project.projectName}
                   </div>
                   {project.subprojectName && (
-                    <div className="text-xs text-center mt-2 text-gray-300">
+                    <div className="text-xs text-center mt-2.5 text-gray-300">
                       {project.subprojectName}
                     </div>
                   )}
                 </div>
                 
                 {/* Main content area */}
-                <div className="flex-1 flex flex-col md:flex-row items-start md:items-center justify-between p-6">
-                  <div className="flex items-center mb-3 md:mb-0">
-                    <div className="text-sm font-mono text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-750 px-4 py-3 rounded-lg">
+                <div className="flex-1 flex flex-col md:flex-row items-start md:items-center justify-between p-7">
+                  <div className="flex flex-col items-center mb-3 md:mb-0">
+                    <div className="text-sm font-mono text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-750 px-4 py-3.5 rounded-lg mb-4">
                       Paused at: {formatTime(project.elapsedTime)}
+                    </div>
+                    
+                    {/* Round-off time circle - centered below the time container */}
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-900 dark:bg-gray-900 text-white font-bold text-sm shadow-inner border border-gray-700">
+                      {formatRoundoffTime(project.elapsedTime)}
                     </div>
                   </div>
                   
@@ -138,7 +147,7 @@ const QueuedProjects: React.FC<QueuedProjectsProps> = ({
                     <Button
                       size="sm"
                       onClick={() => onResumeProject(project)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-3 transition-all duration-200 shadow-md hover:shadow-lg transform active:scale-[0.98]"
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-3.5 transition-all duration-200 shadow-md hover:shadow-lg transform active:scale-[0.98]"
                     >
                       <Play className="h-4 w-4 mr-2" />
                       Resume
@@ -147,7 +156,7 @@ const QueuedProjects: React.FC<QueuedProjectsProps> = ({
                       size="sm"
                       variant="outline"
                       onClick={() => handleStopClick(project)}
-                      className="text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors shadow-sm transform active:scale-[0.98]"
+                      className="text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors shadow-sm transform active:scale-[0.98]"
                     >
                       <Square className="h-4 w-4 mr-2" />
                       Stop
@@ -177,8 +186,16 @@ const QueuedProjects: React.FC<QueuedProjectsProps> = ({
                 <div className="text-sm text-gray-600 dark:text-gray-300">
                   {stoppingProject.subprojectName}
                 </div>
-                <div className="text-sm font-mono text-gray-700 dark:text-gray-200 mt-3 bg-gray-100 dark:bg-gray-750 px-4 py-3 rounded-lg inline-block">
-                  Duration: {formatTime(stoppingProject.elapsedTime)}
+                
+                <div className="flex flex-col items-center mt-4">
+                  <div className="text-sm font-mono text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-750 px-4 py-3 rounded-lg mb-3">
+                    Duration: {formatTime(stoppingProject.elapsedTime)}
+                  </div>
+                  
+                  {/* Round-off circle in dialog */}
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-900 dark:bg-gray-900 text-white font-bold text-sm shadow-inner border border-gray-700">
+                    {formatRoundoffTime(stoppingProject.elapsedTime)}
+                  </div>
                 </div>
               </div>
               
@@ -198,7 +215,7 @@ const QueuedProjects: React.FC<QueuedProjectsProps> = ({
               <div className="flex gap-3 pt-2">
                 <Button 
                   onClick={handleConfirmStop} 
-                  className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="flex-1 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   Save & Stop
@@ -206,7 +223,7 @@ const QueuedProjects: React.FC<QueuedProjectsProps> = ({
                 <Button 
                   variant="outline" 
                   onClick={handleCancelStop}
-                  className="py-3 rounded-xl text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors shadow-sm"
+                  className="py-3.5 rounded-xl text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors shadow-sm"
                 >
                   Cancel
                 </Button>
