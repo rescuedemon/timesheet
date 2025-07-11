@@ -81,7 +81,6 @@ const QueuedProjects: React.FC<QueuedProjectsProps> = ({
       );
       onStopProject(stoppingProject.id);
     } else {
-      // If no onLogTime callback, just stop the project
       if (stoppingProject) {
         onStopProject(stoppingProject.id);
       }
@@ -101,43 +100,59 @@ const QueuedProjects: React.FC<QueuedProjectsProps> = ({
 
   return (
     <>
-      <Card className="mt-8 shadow-2xl border-0 bg-gradient-secondary-modern backdrop-blur-xl border border-border/20 hover:border-border/40 transition-all duration-500">
-        <CardHeader className="pb-6 border-b border-border/10">
-          <CardTitle className="text-xl font-medium text-foreground tracking-tight">Paused Projects</CardTitle>
+      <Card className="mt-8 bg-white dark:bg-gray-850 rounded-2xl shadow-lg border-0 overflow-hidden">
+        <CardHeader className="pb-4 px-6 pt-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800 border-b border-gray-100 dark:border-gray-700">
+          <CardTitle className="text-xl font-semibold text-gray-800 dark:text-white tracking-tight">
+            Paused Projects
+          </CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
+        <CardContent className="pb-8 px-6 pt-6">
+          <div className="space-y-6">
             {queuedProjects.map(project => (
               <div 
                 key={project.id} 
-                className="flex items-center justify-between p-6 border border-border/30 rounded-2xl bg-card/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:border-border/50"
+                className="flex items-stretch p-0 rounded-xl bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all duration-300 overflow-hidden transform hover:-translate-y-0.5 group"
                 style={getProjectBackgroundStyle(project.projectName)}
               >
-                <div className="flex-1">
-                  <div className="font-semibold text-lg text-foreground">{project.projectName}</div>
-                  <div className="text-sm text-muted-foreground mt-1">{project.subprojectName}</div>
-                  <div className="text-sm text-muted-foreground/80 mt-2 font-mono bg-muted/30 px-3 py-1 rounded-lg inline-block">
-                    Paused at: {formatTime(project.elapsedTime)}
+                {/* Project name container (left 15%) */}
+                <div className="w-[15%] min-w-[120px] bg-gray-900 dark:bg-gray-900 flex flex-col items-center justify-center text-white p-6 rounded-l-xl">
+                  <div className="font-bold text-center text-base">
+                    {project.projectName}
                   </div>
+                  {project.subprojectName && (
+                    <div className="text-xs text-center mt-2 text-gray-300">
+                      {project.subprojectName}
+                    </div>
+                  )}
                 </div>
-                <div className="flex gap-3">
-                  <Button
-                    size="sm"
-                    onClick={() => onResumeProject(project)}
-                    className="bg-success hover:bg-success/90 text-white px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
-                  >
-                    <Play className="h-4 w-4 mr-2" />
-                    Resume
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleStopClick(project)}
-                    className="border-border/60 hover:bg-accent/50 px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl"
-                  >
-                    <Square className="h-4 w-4 mr-2" />
-                    Stop
-                  </Button>
+                
+                {/* Main content area */}
+                <div className="flex-1 flex flex-col md:flex-row items-start md:items-center justify-between p-6">
+                  <div className="flex items-center mb-3 md:mb-0">
+                    <div className="text-sm font-mono text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-750 px-4 py-3 rounded-lg">
+                      Paused at: {formatTime(project.elapsedTime)}
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                    <Button
+                      size="sm"
+                      onClick={() => onResumeProject(project)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-3 transition-all duration-200 shadow-md hover:shadow-lg transform active:scale-[0.98]"
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Resume
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleStopClick(project)}
+                      className="text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors shadow-sm transform active:scale-[0.98]"
+                    >
+                      <Square className="h-4 w-4 mr-2" />
+                      Stop
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -147,40 +162,51 @@ const QueuedProjects: React.FC<QueuedProjectsProps> = ({
 
       {/* Stop Confirmation Dialog */}
       <Dialog open={!!stoppingProject} onOpenChange={(open) => !open && handleCancelStop()}>
-        <DialogContent className="max-w-md rounded-2xl bg-card border border-border/40 shadow-2xl backdrop-blur-xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-medium tracking-tight">Log Time Entry</DialogTitle>
+        <DialogContent className="max-w-md rounded-2xl bg-white dark:bg-gray-850 border border-gray-200 dark:border-gray-700 shadow-xl">
+          <DialogHeader className="px-6 pt-6">
+            <DialogTitle className="text-xl font-semibold text-gray-800 dark:text-white tracking-tight">
+              Log Time Entry
+            </DialogTitle>
           </DialogHeader>
           {stoppingProject && (
-            <div className="space-y-6">
-              <div className="p-6 bg-muted/50 rounded-2xl border border-border/30">
-                <div className="font-semibold text-foreground">{stoppingProject.projectName}</div>
-                <div className="text-sm text-muted-foreground">{stoppingProject.subprojectName}</div>
-                <div className="text-lg font-mono mt-3 text-foreground bg-accent/20 px-3 py-2 rounded-lg inline-block">
+            <div className="space-y-6 px-6 pb-6">
+              <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                <div className="font-medium text-base text-gray-800 dark:text-gray-100">
+                  {stoppingProject.projectName}
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-300">
+                  {stoppingProject.subprojectName}
+                </div>
+                <div className="text-sm font-mono text-gray-700 dark:text-gray-200 mt-3 bg-gray-100 dark:bg-gray-750 px-4 py-3 rounded-lg inline-block">
                   Duration: {formatTime(stoppingProject.elapsedTime)}
                 </div>
               </div>
               
               <div>
-                <Label className="text-sm font-medium text-foreground mb-3 block">Description (optional)</Label>
+                <Label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                  Description (optional)
+                </Label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="What did you work on?"
                   rows={3}
-                  className="border-border/60 bg-input/50 focus:bg-background rounded-xl transition-all duration-300"
+                  className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 rounded-xl"
                 />
               </div>
               
               <div className="flex gap-3 pt-2">
-                <Button onClick={handleConfirmStop} className="flex-1 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
+                <Button 
+                  onClick={handleConfirmStop} 
+                  className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 shadow-md hover:shadow-lg"
+                >
                   <Save className="h-4 w-4 mr-2" />
                   Save & Stop
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={handleCancelStop}
-                  className="px-6 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="py-3 rounded-xl text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors shadow-sm"
                 >
                   Cancel
                 </Button>

@@ -37,12 +37,9 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
   const [showDescriptionDialog, setShowDescriptionDialog] = useState(false);
   const [description, setDescription] = useState('');
   const [pendingLogData, setPendingLogData] = useState<{duration: number, startTime: Date, endTime: Date} | null>(null);
-  const lastMinuteMarkRef = useRef(0);
-  const [tintOpacity, setTintOpacity] = useState(0);
-  const dropRef = useRef<{x: number, y: number, size: number, rippleSize: number, splashing: boolean} | null>(null);
   const auroraTimeRef = useRef(0);
   const lastUpdateRef = useRef<number | null>(null);
-  const [colorCodedEnabled, setColorCodedEnabled] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Load stopwatch state from localStorage
   useEffect(() => {
@@ -78,13 +75,28 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
     storageService.saveStopwatchState(state);
   }, [isRunning, elapsedTime, startTime]);
 
-  // Update blue tint opacity based on elapsed time
+  // Aurora and gradient animation
   useEffect(() => {
-    // 8 hours = 28,800 seconds
-    const maxTime = 28800;
-    const newOpacity = Math.min(0.3, elapsedTime / maxTime * 0.3);
-    setTintOpacity(newOpacity);
-  }, [elapsedTime]);
+    let animationFrameId: number;
+    
+    const updateAuroraAndGradient = (timestamp: number) => {
+      auroraTimeRef.current = timestamp / 1000;
+      
+      if (containerRef.current) {
+        // Update gradient position based on time
+        const gradientPos = Math.sin(auroraTimeRef.current * 0.5) * 0.1 + 0.5;
+        containerRef.current.style.setProperty('--gradient-pos', `${gradientPos}`);
+      }
+      
+      animationFrameId = requestAnimationFrame(updateAuroraAndGradient);
+    };
+    
+    animationFrameId = requestAnimationFrame(updateAuroraAndGradient);
+    
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
 
   // Smooth animation loop
   useEffect(() => {
@@ -112,56 +124,6 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
     };
   }, [isRunning, startTime]);
 
-  // Waterdrop effect at minute marks
-  useEffect(() => {
-    if (isRunning && elapsedTime > 0 && elapsedTime % 60 === 0) {
-      // Only trigger once per minute
-      if (elapsedTime !== lastMinuteMarkRef.current) {
-        lastMinuteMarkRef.current = elapsedTime;
-        
-        const center = 130;
-        
-        // Create water drop at top of circle
-        dropRef.current = {
-          x: center,
-          y: 20,
-          size: 8,
-          rippleSize: 0,
-          splashing: false
-        };
-        
-        // Animate drop falling
-        const dropAnimation = () => {
-          if (!dropRef.current) return;
-          
-          // Move drop down
-          dropRef.current.y += 4;
-          
-          // Increase size as it falls
-          if (dropRef.current.size < 12) {
-            dropRef.current.size += 0.1;
-          }
-          
-          // When drop reaches bottom, create splash
-          if (dropRef.current.y > 250) {
-            dropRef.current.splashing = true;
-            dropRef.current.rippleSize += 4;
-            
-            // Remove after splash expands
-            if (dropRef.current.rippleSize > 60) {
-              dropRef.current = null;
-              return;
-            }
-          }
-          
-          requestAnimationFrame(dropAnimation);
-        };
-        
-        dropAnimation();
-      }
-    }
-  }, [elapsedTime, isRunning]);
-
   // Timer effect for actual seconds counting
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -187,12 +149,12 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
     setIsRunning(true);
     setElapsedTime(0);
     setDisplayTime(0);
-    dropRef.current = null;
-    setTintOpacity(0);
   };
 
   const handlePause = () => {
     if (!selectedProject || !selectedSubproject || !startTime) return;
+    
+    setIsRunning(false);
     
     const queuedProject: QueuedProject = {
       id: Date.now().toString(),
@@ -205,11 +167,6 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
     };
     
     onPauseProject(queuedProject);
-    
-    setIsRunning(false);
-    setElapsedTime(0);
-    setDisplayTime(0);
-    setStartTime(null);
     storageService.clearStopwatchState();
   };
 
@@ -232,7 +189,6 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
     setElapsedTime(0);
     setDisplayTime(0);
     setStartTime(null);
-    dropRef.current = null;
     storageService.clearStopwatchState();
   };
 
@@ -255,22 +211,33 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
   const canPauseOrStop = isRunning && startTime;
 
   return (
-    <div className="flex flex-col items-center">
+    <div 
+      ref={containerRef}
+      className="flex flex-col items-center justify-center w-full h-full relative overflow-hidden"
+      style={{
+        background: `
+          radial-gradient(
+            circle at 50% var(--gradient-pos, 0.5),
+            rgba(255, 255, 255, 0.03) 0%,
+            transparent 70%
+          ),
+          var(--background-color, transparent)
+        `,
+        '--gradient-pos': '0.5'
+      } as React.CSSProperties}
+    >
       <ProjectInfo 
         selectedProject={selectedProject}
         selectedSubproject={selectedSubproject}
       />
       
       {/* Timer Section */}
-      <div className="flex flex-col items-center justify-center space-y-10 px-6 z-10">
+      <div className="flex flex-col items-center justify-center space-y-10 px-6 z-10 w-full">
         <StopwatchDisplay
           isRunning={isRunning}
           elapsedTime={elapsedTime}
           displayTime={displayTime}
-          tintOpacity={tintOpacity}
-          dropRef={dropRef}
           auroraTimeRef={auroraTimeRef}
-          lastUpdateRef={lastUpdateRef}
         />
         
         <StopwatchControls
