@@ -16,23 +16,28 @@ interface StopwatchPanelProps {
   onResumedProjectHandled: () => void;
 }
 
-// Light pastel colors for aurora effect
+// More vibrant colors for aurora effect
 const AURORA_COLORS = [
-  'rgba(173, 216, 230, 0.3)',   // Light Blue
-  'rgba(255, 182, 193, 0.3)',   // Light Pink
-  'rgba(152, 251, 152, 0.3)',   // Light Green
-  'rgba(221, 160, 221, 0.3)',   // Light Purple
-  'rgba(255, 228, 181, 0.3)',   // Light Yellow
-  'rgba(175, 238, 238, 0.3)',   // Light Cyan
-  'rgba(240, 128, 128, 0.3)',   // Light Coral
-  'rgba(216, 191, 216, 0.3)',   // Thistle
-  'rgba(189, 252, 201, 0.3)',   // Mint
-  'rgba(255, 218, 185, 0.3)',   // Peach
-  'rgba(219, 112, 147, 0.3)',   // Pale Violet Red
-  'rgba(176, 224, 230, 0.3)',   // Powder Blue
-  'rgba(240, 230, 140, 0.3)',   // Khaki
-  'rgba(211, 211, 211, 0.3)',   // Light Gray
-  'rgba(255, 160, 122, 0.3)',   // Light Salmon
+  'rgba(100, 200, 255, 0.5)',   // Vibrant Blue
+  'rgba(255, 100, 200, 0.5)',   // Vibrant Pink
+  'rgba(100, 255, 150, 0.5)',   // Vibrant Green
+  'rgba(200, 100, 255, 0.5)',   // Vibrant Purple
+  'rgba(255, 200, 100, 0.5)',   // Vibrant Yellow
+  'rgba(100, 240, 255, 0.5)',   // Vibrant Cyan
+  'rgba(255, 120, 100, 0.5)',   // Vibrant Coral
+  'rgba(220, 150, 255, 0.5)',   // Vibrant Lavender
+  'rgba(150, 255, 180, 0.5)',   // Vibrant Mint
+  'rgba(255, 180, 100, 0.5)',   // Vibrant Peach
+  'rgba(255, 100, 150, 0.5)',   // Vibrant Rose
+  'rgba(100, 200, 255, 0.5)',   // Vibrant Sky Blue
+  'rgba(255, 220, 100, 0.5)',   // Vibrant Gold
+  'rgba(200, 200, 255, 0.5)',   // Vibrant Lilac
+  'rgba(255, 150, 100, 0.5)',   // Vibrant Orange
+  'rgba(100, 255, 220, 0.5)',   // Vibrant Aqua
+  'rgba(255, 100, 255, 0.5)',   // Vibrant Magenta
+  'rgba(220, 255, 100, 0.5)',   // Vibrant Lime
+  'rgba(255, 140, 200, 0.5)',   // Vibrant Bubblegum
+  'rgba(180, 100, 255, 0.5)',   // Vibrant Violet
 ];
 
 // Custom StopwatchDisplay component with aurora effect
@@ -50,16 +55,19 @@ const StopwatchDisplay: React.FC<{
   useEffect(() => {
     if (!containerRef.current) return;
     
-    // Create aurora elements
+    // Clear previous elements
+    auroraElementsRef.current.forEach(el => el.remove());
     auroraElementsRef.current = [];
+    
     const fragment = document.createDocumentFragment();
     
-    for (let i = 0; i < 15; i++) {
+    // Create 20 aurora elements
+    for (let i = 0; i < 20; i++) {
       const element = document.createElement('div');
-      element.className = 'aurora-element absolute rounded-full blur-[50px]';
+      element.className = 'aurora-element absolute rounded-full blur-[60px]';
       
       // Random size
-      const size = 50 + Math.random() * 100;
+      const size = 60 + Math.random() * 120;
       element.style.width = `${size}px`;
       element.style.height = `${size}px`;
       
@@ -93,20 +101,24 @@ const StopwatchDisplay: React.FC<{
         
         // Different movement patterns based on index
         let dx = 0, dy = 0;
+        const speed = 0.5 + (index % 3) * 0.3;
         
-        if (index % 3 === 0) {
-          // Circular movement
-          const angle = timestamp / 2000 + index;
-          dx = Math.cos(angle) * 0.2;
-          dy = Math.sin(angle) * 0.2;
-        } else if (index % 3 === 1) {
-          // Diagonal movement
-          dx = Math.sin(timestamp / 3000 + index) * 0.3;
-          dy = Math.cos(timestamp / 3000 + index) * 0.3;
-        } else {
-          // Random drift
-          dx = Math.sin(timestamp / 4000 + index) * 0.4;
-          dy = Math.cos(timestamp / 3000 + index * 0.7) * 0.4;
+        switch(index % 4) {
+          case 0: // Circular movement
+            dx = Math.cos(timestamp / 2000 + index) * speed;
+            dy = Math.sin(timestamp / 2000 + index) * speed;
+            break;
+          case 1: // Diagonal movement
+            dx = Math.sin(timestamp / 1500 + index) * speed;
+            dy = Math.cos(timestamp / 1800 + index) * speed;
+            break;
+          case 2: // Swirling movement
+            dx = Math.cos(timestamp / 2500 + index) * speed;
+            dy = Math.sin(timestamp / 2200 + index) * speed;
+            break;
+          default: // Random drift
+            dx = Math.sin(timestamp / 3000 + index) * speed;
+            dy = Math.cos(timestamp / 2800 + index * 0.7) * speed;
         }
         
         // Get current position
@@ -118,8 +130,13 @@ const StopwatchDisplay: React.FC<{
         el.style.top = `${(top + dy + 100) % 100}%`;
         
         // Pulsating opacity
-        const pulse = 0.3 + 0.2 * Math.sin(timestamp / 1000 + index);
+        const pulse = 0.4 + 0.3 * Math.sin(timestamp / 800 + index);
         el.style.opacity = `${pulse}`;
+        
+        // Color shifting
+        if (timestamp % 5000 < 50) {
+          el.style.backgroundColor = AURORA_COLORS[Math.floor(Math.random() * AURORA_COLORS.length)];
+        }
       });
       
       animationRef.current = requestAnimationFrame(animateAurora);
@@ -141,8 +158,8 @@ const StopwatchDisplay: React.FC<{
       {/* Aurora container */}
       <div ref={containerRef} className="absolute inset-0 pointer-events-none" />
       
-      {/* Timer display */}
-      <div className="relative z-10 text-4xl font-mono font-bold text-gray-800">
+      {/* Timer display - only visible when running */}
+      <div className={`relative z-10 text-4xl font-mono font-bold text-gray-800 transition-opacity duration-300 ${isRunning ? 'opacity-100' : 'opacity-0'}`}>
         {formattedTime}
       </div>
     </div>
@@ -166,7 +183,6 @@ const StopwatchPanel: React.FC<StopwatchPanelProps> = ({
   const [pendingLogData, setPendingLogData] = useState<{duration: number, startTime: Date, endTime: Date} | null>(null);
   const lastUpdateRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>(0);
 
   // Load stopwatch state from localStorage
   useEffect(() => {
