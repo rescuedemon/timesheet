@@ -18,7 +18,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   
   const windRef = useRef<HTMLDivElement>(null);
   const [waves, setWaves] = useState<number[]>([]);
-  const [boats, setBoats] = useState<{ id: number; top: number; }[]>([]);
+  const [boats, setBoats] = useState<{ id: number; top: number; speed: number; }[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Generate wind effect particles
@@ -82,10 +82,11 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     if (!enabled) return;
     
     const boatInterval = setInterval(() => {
-      // Add boat with random vertical position
+      // Add boat with random vertical position and speed
       setBoats(prev => [...prev, { 
         id: Date.now(), 
-        top: Math.random() * 20 + 40  // 40% to 60% from top (near water surface)
+        top: Math.random() * 20 + 40,  // 40% to 60% from top (near water surface)
+        speed: 20 + (Math.random() * 8 - 4)  // 16-24 seconds (20% variance)
       }]);
     }, 900000); // 15 minutes
     
@@ -97,7 +98,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
     if (!enabled) return;
     
     const cleanup = setInterval(() => {
-      setBoats(prev => prev.filter(boat => Date.now() - boat.id <= 31000));
+      setBoats(prev => prev.filter(boat => Date.now() - boat.id <= (boat.speed + 6) * 1000));
     }, 1000);
     
     return () => clearInterval(cleanup);
@@ -203,7 +204,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
             style={{
               top: `${boat.top}%`,
               left: '0%',
-              animation: `boatFloat 25s linear forwards, boatBob 3s ease-in-out infinite`,
+              animation: `boatFloat ${boat.speed}s linear forwards, boatBob 3s ease-in-out infinite`,
               zIndex: 15,
               width: '35px',
               height: '35px',
@@ -252,9 +253,20 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
       
       {/* Content - moved to top left with padding 4 */}
       <div className="absolute top-4 left-4 z-20">
-        <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl px-4 py-3 border border-gray-800/50 shadow-md">
+        <button 
+          className="bg-gray-900/90 backdrop-blur-sm rounded-xl px-4 py-3 border border-gray-800/50 shadow-md hover:bg-gray-800/90 transition-all duration-200 cursor-pointer"
+          onClick={() => {
+            if (boats.length < 10) {
+              setBoats(prev => [...prev, { 
+                id: Date.now(), 
+                top: Math.random() * 20 + 40,
+                speed: 20 + (Math.random() * 8 - 4)
+              }]);
+            }
+          }}
+        >
           <div className="text-3xl font-bold text-white tracking-tight">{hours} hrs</div>
-        </div>
+        </button>
       </div>
       
       {/* Test controls - top right */}
